@@ -167,12 +167,7 @@ for _, row in df.iterrows():
             if most_recent_leak_date and most_recent_leak_date > one_year_ago:
                 risk_score = "High"
             elif has_password:
-                risk_score = "High"
-            else:
-                risk_score = "Low"
-        else:
-            if has_password:
-                risk_score = "High"
+                risk_score = "Med"
             else:
                 risk_score = "Low"
 
@@ -180,7 +175,7 @@ for _, row in df.iterrows():
 
     if client_data:
         # Create a DataFrame for the client's data with the required columns
-        client_df = pd.DataFrame(client_data, columns=['email', 'Data Leak Name', 'Most Recent Leak Date', 'Data Historically Leaked', 'Risk Score'])
+        client_df = pd.DataFrame(client_data, columns=['email', 'Data Leak Names/dates', 'Most Recent Leak Names/Date', 'Data Historically Leaked', 'Risk Score'])
 
         # Fill any empty cells with 'N/A'
         client_df.fillna('No Data', inplace=True)
@@ -188,14 +183,15 @@ for _, row in df.iterrows():
         # Sort the breach info data by date (most recent first)
         breach_info_data.sort(key=lambda x: datetime.strptime(x[1], "%Y-%m-%d"), reverse=True)
 
+        # Remove duplicates from 'Data Leak Name' in breach info data
+        breach_info_data_unique = pd.DataFrame(breach_info_data, columns=['Data Leak Name', 'Breach Date', 'Date Added to Database', 'Description', 'References']).drop_duplicates(subset=['Data Leak Name'])
+
         # Save the output to a new Excel file named with the client's name and the current date
         with pd.ExcelWriter(f'{client_name}_DarkWebBreaches_{current_date}.xlsx') as writer:
             client_df.to_excel(writer, sheet_name='Leaked Data', index=False)
 
-            # Create a DataFrame for the breach info data and save it to a new sheet
-            if breach_info_data:
-                breach_info_df = pd.DataFrame(breach_info_data, columns=['Data Leak Name', 'Breach Date', 'Date Added to Database', 'Description', 'References'])
-                breach_info_df.to_excel(writer, sheet_name='Breach Details', index=False)
+            # Save the unique breach info data to a new sheet
+            breach_info_data_unique.to_excel(writer, sheet_name='Breach Details', index=False)
 
         print(f"Leaked credentials for {client_name} saved to {client_name}_DarkWebBreaches_{current_date}.xlsx")
     else:
